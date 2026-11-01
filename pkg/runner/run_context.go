@@ -89,8 +89,16 @@ func (rc *RunContext) GetEnv() map[string]string {
 	return rc.Env
 }
 
+// ACT_INSTANCE, when set, keeps the containers, volumes and tool cache of concurrent runs on one docker host apart.
 func (rc *RunContext) jobContainerName() string {
-	return createContainerName("act", rc.String())
+	return createContainerName("act", os.Getenv("ACT_INSTANCE"), rc.String())
+}
+
+func toolCacheVolume() string {
+	if instance := os.Getenv("ACT_INSTANCE"); instance != "" {
+		return createContainerName("act-toolcache", instance)
+	}
+	return "act-toolcache"
 }
 
 // networkName return the name of the network which will be created by `act` automatically for job,
@@ -148,7 +156,7 @@ func (rc *RunContext) GetBindsAndMounts() ([]string, map[string]string) {
 		return binds, mounts
 	}
 	mounts := map[string]string{
-		"act-toolcache": "/opt/hostedtoolcache",
+		toolCacheVolume(): "/opt/hostedtoolcache",
 		name + "-env":   ext.GetActPath(),
 	}
 
